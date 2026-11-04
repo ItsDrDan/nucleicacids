@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Helix Hustle • Nucleic Acids • Dr. Dan • CHEM 3B</title>
 <meta name="description" content="CHEM 3B nucleic acids practice: bases, ribose and deoxyribose, nucleosides and nucleotides, DNA structure and base pairing, replication, transcription and splicing, the genetic code, translation, mutations and viruses.">
-<link rel="icon" type="image/webp" href="assets/mascot/dex-idle.webp">
+<link rel="icon" type="image/webp" href="assets/mascot/ribo-idle.webp">
 <style>
 
 :root{
@@ -336,7 +336,7 @@ table.data.mut .seq{font-size:1.1rem}table.data.mut td.aas{color:var(--muted);fo
  </section>
 
  <main class="panel" id="play">
-  <div class="play-head"><div class="play-left"><img id="mascot" class="mascot" alt="Dex the DNA helix" data-mood="idle"><h2 class="play-title" id="playTitle"></h2></div><button type="button" id="skipBtn" class="btn">New question <span data-icon="arrow" aria-hidden="true"></span></button></div>
+  <div class="play-head"><div class="play-left"><img id="mascot" class="mascot" alt="Ribo the nucleotide" data-mood="idle"><h2 class="play-title" id="playTitle"></h2></div><button type="button" id="skipBtn" class="btn">New question <span data-icon="arrow" aria-hidden="true"></span></button></div>
   <div class="coach" id="coach" role="status" aria-live="polite"></div>
   <div class="empty" id="emptyBox"><span data-icon="arrow" aria-hidden="true"></span> Pick something above to get your first question.</div>
   <section id="reportBox" class="example" hidden></section>
@@ -820,10 +820,10 @@ const TOPICS = {
   final: { label: 'Final-exam review', video: null }
 };
 const CATEGORIES = [
-  { id: 'blocks', title: 'Building Blocks', blurb: 'Bases, sugars, nucleosides, nucleotides', art: 'cat-blocks', fallback: 'molecule', topics: ['bases', 'sugars', 'nucleo', 'naming'] },
-  { id: 'structure', title: 'DNA & RNA Structure', blurb: 'Backbone, base pairs, the double helix', art: 'cat-structure', fallback: 'lattice', topics: ['backbone', 'pairing', 'hbonds', 'chargaff', 'helix'] },
-  { id: 'copy', title: 'Replication & Transcription', blurb: 'Copy DNA, make mRNA, splice it', art: 'cat-copy', fallback: 'react', topics: ['replication', 'transcribe', 'splicing', 'transfacts'] },
-  { id: 'protein', title: 'Translation & Mutations', blurb: 'Codons, tRNA, ribosomes, mutations', art: 'cat-protein', fallback: 'target', topics: ['codons', 'anticodon', 'translation', 'mutations', 'viruses'] }
+  { id: 'blocks', title: 'Building Blocks', blurb: 'Bases, sugars, nucleosides, nucleotides', art: 'cat-nucleotide', fallback: 'molecule', topics: ['bases', 'sugars', 'nucleo', 'naming'] },
+  { id: 'structure', title: 'DNA & RNA Structure', blurb: 'Backbone, base pairs, the double helix', art: 'cat-helix', fallback: 'lattice', topics: ['backbone', 'pairing', 'hbonds', 'chargaff', 'helix'] },
+  { id: 'copy', title: 'Replication & Transcription', blurb: 'Copy DNA, make mRNA, splice it', art: 'cat-replication', fallback: 'react', topics: ['replication', 'transcribe', 'splicing', 'transfacts'] },
+  { id: 'protein', title: 'Translation & Mutations', blurb: 'Codons, tRNA, ribosomes, mutations', art: 'cat-translation', fallback: 'target', topics: ['codons', 'anticodon', 'translation', 'mutations', 'viruses'] }
 ];
 const OLD_MODES = {};
 
@@ -835,13 +835,13 @@ function genBases() {
   if (k === 'name') {
     const near = { A: ['guanine', 'cytosine'], G: ['adenine', 'thymine'], C: ['uracil', 'thymine'], T: ['uracil', 'cytosine'], U: ['thymine', 'cytosine'] }[b];
     const why = { adenine: 'Adenine is a purine (two rings) with an NH₂ and no C=O.', guanine: 'Guanine is a purine (two rings) with a C=O and an NH₂.', cytosine: 'Cytosine is a pyrimidine (one ring) with one C=O and an NH₂.', thymine: 'Thymine is a pyrimidine (one ring) with two C=O and a CH₃.', uracil: 'Uracil is a pyrimidine (one ring) with two C=O and no CH₃.' };
-    return mcq({ topic: 'bases', tag: 'Name the base', art: baseSVG(b), prompt: 'Which nitrogen base is this?', right: cap(I.name), keep: true,
+    return orderChoices(mcq({ topic: 'bases', tag: 'Name the base', art: baseSVG(b), prompt: 'Which nitrogen base is this?', right: cap(I.name), keep: true,
       wrong: names.filter(n => n !== I.name).map(n => ({ html: cap(n), why: why[n] + (near.includes(n) ? ' Compare the groups on the ring.' : ''), slip: (I.type === 'purine') === ['adenine', 'guanine'].includes(n) ? 'base-groups' : 'purine-pyrimidine' })), n: 5,
       hint: 'First count rings: two fused rings = purine (A or G), one ring = pyrimidine (C, T or U). Then look at the groups: NH₂, C=O, CH₃.',
       solution: `<b>${cap(I.name)}</b> (${b}): a ${I.type}. ${why[I.name]}`, flags: { base: b },
       steps: [{ ask: 'How many rings?', choices: [{ html: 'Two fused rings (purine)', ok: I.type === 'purine', why: 'Count again: one six-membered ring only.' }, { html: 'One ring (pyrimidine)', ok: I.type === 'pyrimidine', why: 'There is a five-membered ring fused to the six-membered ring.' }], why: I.type === 'purine' ? 'Purine: A or G.' : 'Pyrimidine: C, T or U.' },
         { ask: 'Which groups are on the ring?', choices: shuffle([['NH₂, no C=O', 'A'], ['C=O and NH₂', I.type === 'purine' ? 'G' : 'C'], ['Two C=O and a CH₃', 'T'], ['Two C=O, no CH₃', 'U']].filter(([, x]) => (I.type === 'purine') === 'AG'.includes(x))).map(([h, x]) => ({ html: h, ok: x === b, why: 'Look again at each atom attached to the ring.' })), why: `That is ${I.name}.` },
-        { ask: 'Now pick the base.', final: true }] });
+        { ask: 'Now pick the base.', final: true }] }), ['Adenine', 'Guanine', 'Cytosine', 'Thymine', 'Uracil']);
   }
   if (k === 'type') return orderChoices(mcq({ topic: 'bases', tag: 'Purine or pyrimidine?', art: baseSVG(b), prompt: `This is ${I.name}. Is it a purine or a pyrimidine?`, right: cap(I.type),
     wrong: [{ html: I.type === 'purine' ? 'Pyrimidine' : 'Purine', why: I.type === 'purine' ? 'Purines have two fused rings (a six- and a five-membered ring).' : 'Pyrimidines have one six-membered ring.', slip: 'purine-pyrimidine' }],
@@ -1370,11 +1370,11 @@ const ACH = [
   ['streak10', 'Unstoppable', '10 right in a row', 'ach-streak10', 'trophy', P => P.best >= 10],
   ['bases', 'Base Collector', 'Identify all 5 bases', 'ach-bases', 'molecule', P => (P.bases || []).length >= 5],
   ['pair', 'Perfect Pair', '8 base-pairing or H-bond questions right', 'ach-pair', 'lattice', P => tc(P, ['pairing', 'hbonds', 'chargaff']) >= 8],
-  ['copy', 'Copy Machine', '8 replication questions right', 'ach-copy', 'react', P => tc(P, 'replication') >= 8],
+  ['copy', 'Copy Machine', '8 replication questions right', 'ach-duplicate', 'react', P => tc(P, 'replication') >= 8],
   ['transcribe', 'Transcriber', '8 transcription or splicing questions right', 'ach-transcribe', 'checklist', P => tc(P, ['transcribe', 'splicing', 'transfacts']) >= 8],
-  ['code', 'Code Cracker', '8 codon or anticodon questions right', 'ach-code', 'target', P => tc(P, ['codons', 'anticodon']) >= 8],
-  ['mutant', 'Mutation Detective', '8 mutation questions right', 'ach-mutant', 'eye', P => tc(P, 'mutations') >= 8],
-  ['skill', 'Skill Check Ready', 'Score 8+ on Skill Check Prep', 'ach-skill', 'trophy', P => (P.bestQuiz || 0) >= 8]
+  ['code', 'Code Cracker', '8 codon or anticodon questions right', 'ach-aug', 'target', P => tc(P, ['codons', 'anticodon']) >= 8],
+  ['mutant', 'Mutation Detective', '8 mutation questions right', 'ach-mutation', 'eye', P => tc(P, 'mutations') >= 8],
+  ['skill', 'Skill Check Ready', 'Score 8+ on Skill Check Prep', 'ach-finish', 'trophy', P => (P.bestQuiz || 0) >= 8]
 ];
 
 const state = { course: '3B', sel: new Set(), quiz: null, q: null, tries: 0, helped: false, done: false, logged: false, guideOn: false, atomSel: null };
@@ -1391,12 +1391,12 @@ function setMood(mood = 'idle', backAfter) {
   const m = $('mascot'); if (!m) return;
   const next = MOODS.includes(mood) ? mood : 'idle';
   m.onerror = () => { useArt = false; m.onerror = null; m.src = dexSVG(next); };
-  m.src = useArt === false ? dexSVG(next) : `assets/mascot/dex-${next}.webp`;
-  m.alt = `Dex the DNA helix is ${next === 'oops' ? 'saying oops' : next}`;
+  m.src = useArt === false ? dexSVG(next) : `assets/mascot/ribo-${next}.webp`;
+  m.alt = `Ribo the nucleotide is ${next === 'oops' ? 'saying oops' : next}`;
   m.dataset.mood = ''; void m.offsetWidth; m.dataset.mood = next;
   clearTimeout(moodTimer); if (backAfter) moodTimer = setTimeout(() => setMood('idle'), backAfter);
 }
-(function probeArt() { const i = new Image(); i.onload = () => { useArt = true; MOODS.forEach(n => { const j = new Image(); j.src = `assets/mascot/dex-${n}.webp`; }); }; i.onerror = () => { useArt = false; setMood($('mascot') ? $('mascot').dataset.mood || 'idle' : 'idle'); }; i.src = 'assets/mascot/dex-idle.webp'; })();
+(function probeArt() { const i = new Image(); i.onload = () => { useArt = true; MOODS.forEach(n => { const j = new Image(); j.src = `assets/mascot/ribo-${n}.webp`; }); }; i.onerror = () => { useArt = false; setMood($('mascot') ? $('mascot').dataset.mood || 'idle' : 'idle'); }; i.src = 'assets/mascot/ribo-idle.webp'; })();
 
 /* ---------- stats ---------- */
 function rankOf(xp) { let r = RANKS[0], nx = null; for (let i = 0; i < RANKS.length; i++) if (xp >= RANKS[i][0]) { r = RANKS[i]; nx = RANKS[i + 1] || null; } return { name: r[1], from: r[0], to: nx ? nx[0] : null }; }
@@ -1614,7 +1614,7 @@ function showReport() {
 /* ---------- achievements, toasts, confetti ---------- */
 function checkAch() {
   ACH.forEach(a => { if (!P.ach[a[0]] && a[5](P)) { P.ach[a[0]] = Date.now(); toast(a[3], a[4], 'Achievement unlocked!', a[1]); confetti(); setMood('victory'); } });
-  const r = rankOf(P.xp); if (P.rankSeen !== r.name) { if (P.rankSeen) toast('ach-skill', 'medal', 'New rank!', r.name); P.rankSeen = r.name; }
+  const r = rankOf(P.xp); if (P.rankSeen !== r.name) { if (P.rankSeen) toast('ach-finish', 'medal', 'New rank!', r.name); P.rankSeen = r.name; }
   save(); renderStats();
 }
 function toast(art, fb, title, text) {

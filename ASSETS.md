@@ -1,8 +1,12 @@
 # Helix Hustle: art
 
-**Status:** no art yet. The game runs now with stand-ins (brand-kit badges, `logo.svg`, a code-drawn Dex).
+**Status (Nov 4, 2026):** all art is in: logo, 16 badges and 5 moods of **Ribo the nucleotide** (mascot). Study hub card image: `games/assets/games/nucleicacids.webp`.
 
-## Request
+File names used by the game: `cat-nucleotide`, `cat-helix`, `cat-replication`, `cat-translation`, `skillcheck`, `finalreview`, `ach-first`, `ach-streak5`, `ach-streak10`, `ach-bases`, `ach-pair`, `ach-duplicate`, `ach-transcribe`, `ach-aug`, `ach-mutation`, `ach-finish` (all `assets/<name>.webp`), `assets/mascot/ribo-{idle,thinking,correct,oops,victory}.webp`, `assets/logo-256.webp` and `logo.png`. Missing files fall back to brand-kit badges, `logo.svg` and a code-drawn mascot.
+
+
+
+## Original request (kept for reference; the mascot became Ribo instead of Dex)
 
 **22 images total: 1 game logo + 16 badges + 5 mascot moods.**
 
