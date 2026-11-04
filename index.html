@@ -304,6 +304,9 @@ table.codon .b3 div{line-height:20px}.cc{white-space:nowrap;line-height:20px}.cc
 table.data.mut{font-size:1rem;margin:4px auto 10px}table.data.mut th{text-align:right;white-space:nowrap}table.data.mut td{text-align:left}
 table.data.mut .seq{font-size:1.1rem}table.data.mut td.aas{color:var(--muted);font-weight:700;font-size:.95rem}
 @media(max-width:760px){table.codon{font-size:11px}table.codon th,table.codon td{padding:2px 3px}.minichart{font-size:.92rem}table.data.mut .seq{font-size:.95rem}.cod{margin:0 .06em}}
+.equation .duplex{line-height:1.6}.equation .duplex .seq{font-size:clamp(1.05rem,4vw,1.7rem)}.equation .duplex>small{font-size:.5em;color:#5b6684;font-weight:700}
+#art{flex-direction:column;align-items:center}
+@media(max-width:760px){#art{align-items:flex-start}#art>table,#art>.minichart,#art>p{align-self:stretch}}
 
 </style>
 <script src="https://itsdrdan.github.io/games/track.js" defer></script>
@@ -599,7 +602,7 @@ function forkSVG(o = {}) {
   g += L(ok[0], ok[1], 'C', ok[0] + 4, ok[1] + 50);
   g += L(lg[0], lg[1], 'D', lg[0] - 12, lg[1] + 50);
   g += L(120, fy - 13, 'E', 120, 34);
-  return svgWrap(W, H, g, 'A replication fork. Parent DNA on the left unwinds at the fork. Label A: the pink protein at the fork. B: the continuous new strand on the top arm. C: short new pieces on the bottom arm. D: the yellow enzyme between two short pieces. E: the parent double helix.', 'art mol', ' style="max-width:620px"');
+  return svgWrap(W, H, g, 'A replication fork. Parent DNA on the left unwinds at the fork. Label A: the pink protein at the fork. B: the continuous new strand on the top arm. C: short new pieces on the bottom arm. D: the yellow enzyme between two short pieces. E: the parent double helix.', 'art', ' style="max-width:620px"');
 }
 
 /* ---- tRNA cloverleaf + mRNA codon ---- */
@@ -661,7 +664,7 @@ function ribosomeSVG(o = {}) {
   g += T(30, 186, '5′', { size: 13, fill: '#a0461f', raw: 1 }) + T(W - 36, 186, '3′', { size: 13, fill: '#a0461f', raw: 1 });
   const L = (px, py, t, tx, ty) => `<line x1="${tx}" y1="${ty}" x2="${px}" y2="${py}" stroke="${INK}" stroke-width="2"/><circle cx="${tx}" cy="${ty}" r="15" fill="#fff" stroke="${INK}" stroke-width="2.4"/>` + T(tx, ty + 6, t, { a: 'middle', size: 16 });
   if (o.letters !== false) g += L(184, 120, 'W', 112, 120) + L(346, 120, 'X', 440, 110) + L(450, 200, 'Y', 486, 150);
-  return svgWrap(W, H, g, 'A ribosome during translation. Two tRNA sites sit side by side on the mRNA: label W on the left site, whose tRNA holds the growing peptide chain; label X on the right site, whose tRNA holds one new amino acid; label Y on the mRNA strand.', 'art mol', ' style="max-width:520px"');
+  return svgWrap(W, H, g, 'A ribosome during translation. Two tRNA sites sit side by side on the mRNA: label W on the left site, whose tRNA holds the growing peptide chain; label X on the right site, whose tRNA holds one new amino acid; label Y on the mRNA strand.', 'art', ' style="max-width:520px"');
 }
 
 /* ---- pre-mRNA with exons and introns ---- */
@@ -763,13 +766,15 @@ function parseAAs(raw) {
   const toks = s.split(/[^a-z]+/).filter(Boolean).filter(t => t !== 'stop' && t !== 'start');
   const by3 = {}; Object.entries(AA3).forEach(([k, v]) => by3[v.toLowerCase()] = k);
   const byName = {}; Object.entries(AANAME).forEach(([k, v]) => byName[v.split(' ')[0]] = k);
-  const out = [];
+  const one = new Set(Object.keys(AA3)), out = [];
+  // one-letter codes: "K-P-L-A" or "KPLA" (a token that is not a 3-letter code or a name)
+  if (toks.length && toks.every(t => t.length === 1 || (!by3[t] && !byName[t] && t !== 'acid' && /^[a-z]+$/.test(t) && [...t.toUpperCase()].every(c => one.has(c))))) return { aas: toks.join('').toUpperCase().split('') };
   for (const t of toks) { if (by3[t]) out.push(by3[t]); else if (byName[t]) out.push(byName[t]); else if (t === 'acid') continue; else return { bad: t }; }
   return { aas: out };
 }
 function checkAAs(raw, want, o = {}) {
   const p = parseAAs(raw);
-  if (p.bad) return { ok: false, slip: 'aa-format', note: `I couldn’t read “${p.bad}”. Use three-letter codes like <b>Ala–Val–Asp</b>.` };
+  if (p.bad) return { ok: false, slip: 'aa-format', note: `I couldn’t read “${p.bad}”. Use three-letter codes like <b>Ala–Val–Asp</b> (one-letter codes like AVD also work).` };
   const got = p.aas;
   if (got.join() === want.join()) return { ok: true };
   if (o.withStopNote && got.length === want.length + 1 && got.slice(0, -1).join() === want.join()) return { ok: false, slip: 'past-stop', note: 'A stop codon codes for no amino acid; translation ends there.' };
@@ -890,10 +895,10 @@ function nucName(b, deoxy, phos) {
   const I = BASEINFO[b]; let ns = I.ns;
   if (deoxy) ns = b === 'T' ? 'deoxythymidine' : 'deoxy' + ns;
   if (!phos) return ns;
-  return `${ns} 5′-${['', 'mono', 'di', 'tri'][phos]}phosphate`;
+  return `${ns}-5′-${['', 'mono', 'di', 'tri'][phos]}phosphate`;
 }
 const nucAbbr = (b, deoxy, phos) => (deoxy ? 'd' : '') + b + (phos ? ['', 'MP', 'DP', 'TP'][phos] : '');
-const nmBag = bag(['struct', 'struct', 'struct', 'abbr', 'abbr', 'suffix', 'atp', 'parts']);
+const nmBag = bag(['struct', 'struct', 'struct', 'abbr', 'abbr', 'suffix', 'atp', 'parts', 'ntp', 'ntp', 'instrand', 'instrand']);
 function genNaming() {
   const k = nmBag.next();
   const deoxy = chance(0.5), b = pick(deoxy ? 'AGCT' : 'AGCU'), I = BASEINFO[b], phos = k === 'struct' ? pick([0, 1, 1]) : 1;
@@ -904,12 +909,12 @@ function genNaming() {
     if (b === 'T') wrong.push({ html: full('U', true, phos), why: 'The base is thymine (it has the CH₃), not uracil.', slip: 'T-U' });
     else wrong.push({ html: full(b, !deoxy, phos), why: deoxy ? 'C2′ has only H: the sugar is deoxyribose, so the name needs “deoxy”.' : 'C2′ has an OH: ribose, so no “deoxy”.', slip: 'ribose-deoxy' });
     wrong.push({ html: full(b, deoxy, phos ? 0 : 1), why: phos ? 'There is a phosphate on C5′, so add “5′-monophosphate”.' : 'No phosphate is attached, so it is a nucleoside.', slip: 'side-tide' });
-    const ending = ((deoxy ? 'deoxy' : '') + (I.type === 'purine' ? I.ns.replace('osine', 'idine') : I.ns.replace('idine', 'osine')) + (phos ? ' 5′-monophosphate' : '')).replace('deoxydeoxy', 'deoxy');
+    const ending = ((deoxy ? 'deoxy' : '') + (I.type === 'purine' ? I.ns.replace('osine', 'idine') : I.ns.replace('idine', 'osine')) + (phos ? '-5′-monophosphate' : '')).replace('deoxydeoxy', 'deoxy');
     wrong.push({ html: full(b, deoxy, phos, ending), why: I.type === 'purine' ? 'Purine nucleosides end in “-osine.”' : 'Pyrimidine nucleosides end in “-idine.”', slip: 'name-ending' });
     return mcq({ topic: 'naming', tag: 'Name from the structure', art: nucleoSVG({ base: b, deoxy, phos }), prompt: `The base is ${I.name}. What is the name of this ${phos ? 'nucleotide' : 'nucleoside'}?${phos ? ' What would the abbreviation be?' : ''}`, right: right + (phos ? ` (${nucAbbr(b, deoxy, phos)})` : ''),
       wrong,
       hint: 'Three checks: (1) C2′ OH or H? (deoxy) (2) purine → -osine, pyrimidine → -idine (3) phosphate on C5′? add 5′-monophosphate.',
-      solution: `<b>${right}${phos ? ` (${nucAbbr(b, deoxy, phos)})` : ''}</b>. ${deoxy ? 'C2′ has H: deoxyribose. ' : 'C2′ has OH: ribose. '}${cap(I.name)} is a ${I.type}, so “${I.type === 'purine' ? '-osine' : '-idine'}”. ${phos ? 'Phosphate on C5′: 5′-monophosphate.' : 'No phosphate: a nucleoside.'}`, flags: { base: b },
+      solution: `<b>${right}${phos ? ` (${nucAbbr(b, deoxy, phos)})` : ''}</b>. ${deoxy ? 'C2′ has H: deoxyribose. ' : 'C2′ has OH: ribose. '}${cap(I.name)} is a ${I.type}, so “${I.type === 'purine' ? '-osine' : '-idine'}”. ${phos ? 'Phosphate on C5′: -5′-monophosphate.' : 'No phosphate: a nucleoside.'}`, flags: { base: b },
       steps: [{ ask: 'Look at C2′. Ribose or deoxyribose?', choices: [{ html: 'Ribose (OH)', ok: !deoxy, why: 'C2′ has only H.' }, { html: 'Deoxyribose (H)', ok: deoxy, why: 'C2′ still has OH.' }], why: deoxy ? 'Add “deoxy-”.' : 'No “deoxy”.' },
         { ask: `${cap(I.name)} is a ${I.type}. Which ending?`, choices: [{ html: '-osine', ok: I.type === 'purine', why: 'Pyrimidines get -idine.' }, { html: '-idine', ok: I.type === 'pyrimidine', why: 'Purines get -osine.' }], why: `${I.ns.replace(/^deoxy/, '')}.` },
         { ask: 'Is there a phosphate on C5′?', choices: [{ html: 'Yes', ok: !!phos, why: 'C5′ is just CH₂OH.' }, { html: 'No', ok: !phos, why: 'Look at C5′: a phosphate is attached.' }], why: phos ? 'Add “5′-monophosphate”.' : 'Nucleoside.' },
@@ -920,15 +925,39 @@ function genNaming() {
     if (fromName) return mcq({ topic: 'naming', tag: 'Abbreviations', prompt: `What is the abbreviation for <b>${right}</b>?`, right: ab, wrong: shuffle([b === 'T' ? { html: 'dUMP', why: 'The base is thymine: T.', slip: 'T-U' } : { html: nucAbbr(b, !deoxy, 1), why: '“d” means deoxy.', slip: 'ribose-deoxy' }, { html: nucAbbr(b, deoxy, 2), why: 'DP = diphosphate (two phosphates).' }, { html: (deoxy ? 'd' : '') + pick('AGC'.replace(b, '').split('')) + 'MP', why: 'The letter is the base.' }]), hint: '[d if deoxy] + base letter + MP (monophosphate).', solution: `<b>${ab}</b>: ${deoxy ? '“d” for deoxy, ' : ''}${b} for ${I.name}, MP for monophosphate.` });
     return mcq({ topic: 'naming', tag: 'Abbreviations', prompt: `What does <b>${ab}</b> stand for?`, right, wrong: [b === 'T' ? { html: nucName('U', true, 1), why: 'T is thymine.', slip: 'T-U' } : { html: nucName(b, !deoxy, 1), why: deoxy ? 'The “d” means deoxy.' : 'No “d”, so it is ribose.', slip: 'ribose-deoxy' }, { html: nucName(b, deoxy, 0), why: 'MP means it has one phosphate: a nucleotide.', slip: 'side-tide' }, { html: nucName(b, deoxy, 3), why: 'TP would be triphosphate.' }], hint: 'd = deoxy; MP = monophosphate.', solution: `<b>${ab}</b> = ${right}.` });
   }
+  if (k === 'ntp') {
+    const bb = pick('AGCU'.split('')), J = BASEINFO[bb], ask = pick(['water', 'order', 'step']);
+    const chain = [J.ns, nucName(bb, false, 1), nucName(bb, false, 2), nucName(bb, false, 3)];
+    const ab = ['', bb + 'MP', bb + 'DP', bb + 'TP'];
+    if (ask === 'water') return { kind: 'input', topic: 'naming', tag: 'Building ' + bb + 'TP', prompt: `${cap(J.name)} and ribose are joined, and then three phosphates are added one at a time to make <b>${bb}TP</b>. Each step is a condensation. How many H₂O molecules are released in all?`, placeholder: 'number', note: 'Type a whole number.',
+      check: raw => checkNum(raw, 4, { 3: ['count-water', 'Don’t forget the first step: joining the base to the sugar also releases water.'], 1: ['count-water', 'Every condensation step releases one water: base + sugar, then each of the three phosphates.'] }), answer: '4',
+      hint: 'Count the condensation steps: base + sugar, then phosphate #1, #2 and #3.', solution: `${cap(J.name)} + ribose → ${J.ns} + H₂O; then + phosphate → ${ab[1]} + H₂O; → ${ab[2]} + H₂O; → ${ab[3]} + H₂O. <b>4</b> waters in all.` };
+    if (ask === 'order') return mcq({ topic: 'naming', tag: 'Building ' + bb + 'TP', prompt: `Which list shows the products, in order, as ${J.name} and ribose are built up to ${bb}TP?`, right: `${J.ns} → ${ab[1]} → ${ab[2]} → ${ab[3]}`,
+      wrong: [{ html: `${ab[1]} → ${J.ns} → ${ab[2]} → ${ab[3]}`, why: 'The nucleoside (base + sugar) comes first; phosphates are added after.', slip: 'side-tide' }, { html: `${J.name} → ${ab[3]} → ${ab[2]} → ${ab[1]}`, why: 'Phosphates are added one at a time: MP, then DP, then TP.' }, { html: `deoxy${J.ns} → d${ab[1]} → d${ab[2]} → d${ab[3]}`, why: 'The sugar is ribose, so no “deoxy” or “d”.', slip: 'ribose-deoxy' }],
+      hint: 'Base + sugar = nucleoside. Then mono-, di-, triphosphate.', solution: `<b>${J.ns} → ${ab[1]} → ${ab[2]} → ${ab[3]}</b>, one condensation (and one H₂O) at each step.` });
+    const st = pick([1, 2, 3]);
+    return mcq({ topic: 'naming', tag: 'Building ' + bb + 'TP', prompt: `${cap(chain[st - 1])} reacts with one phosphate in a condensation reaction. What is the product?`, right: `${chain[st]} (${ab[st]})`,
+      wrong: [{ html: `${chain[Math.min(3, st + 1)] === chain[st] ? chain[1] : chain[Math.min(3, st + 1)]} (${chain[Math.min(3, st + 1)] === chain[st] ? ab[1] : ab[Math.min(3, st + 1)]})`, why: 'Only one phosphate is added in this step.' }, { html: `deoxy${chain[st]} (d${ab[st]})`, why: 'Adding phosphate does not change the sugar.', slip: 'ribose-deoxy' }, { html: J.name, why: 'Phosphorylation adds; it does not split off the sugar.' }],
+      hint: 'One more phosphate on C5′.', solution: `${cap(chain[st - 1])} + phosphate → <b>${chain[st]} (${ab[st]})</b> + H₂O.` });
+  }
+  if (k === 'instrand') {
+    const rna = chance(0.35), seq = rndSeq(4, rna ? 'AGCU' : 'AGCT'), pos = pick([0, 3, 1, 2]), b2 = seq[pos];
+    const where = pos === 0 ? 'at the <b>5′ end</b>' : pos === 3 ? 'at the <b>3′ end</b>' : `<b>${pos === 1 ? 'second' : 'third'}</b> from the 5′ end`;
+    const right = nucName(b2, !rna, 1) + ` (${nucAbbr(b2, !rna, 1)})`;
+    const other = seq[3 - pos];
+    return mcq({ topic: 'naming', tag: 'Name it in a strand', eq: seqHTML(seq.split('').join(' '), '5′ ', ' 3′'), prompt: `In this ${rna ? 'RNA' : 'DNA'} strand, which nucleotide is ${where}?`, right,
+      wrong: [{ html: nucName(other, !rna, 1) + ` (${nucAbbr(other, !rna, 1)})`, why: 'Read from the 5′ end on the left.', slip: 'five-three' }, ...(b2 === 'T' ? [] : [{ html: nucName(b2, rna, 1) + ` (${nucAbbr(b2, rna, 1)})`, why: rna ? 'RNA has ribose, so no “deoxy”.' : 'DNA has deoxyribose, so add “deoxy”.', slip: 'ribose-deoxy' }]), { html: nucName(b2, !rna, 0), why: 'Each unit in the strand has a phosphate: it is a nucleotide.', slip: 'side-tide' }, { html: nucName(pick('AGC'.replace(b2, '').split('')), !rna, 1), why: 'Check the base letter.' }],
+      hint: `${rna ? 'RNA: ribose' : 'DNA: deoxyribose (add “deoxy”, abbreviation starts with d)'}. Count from the 5′ end.`, solution: `<b>${right}</b>.`, flags: { base: b2 } });
+  }
   if (k === 'suffix') {
     const bb = pick('AGCU'.split('')), J = BASEINFO[bb];
     return mcq({ topic: 'naming', tag: 'Endings', prompt: `What is the name of the nucleoside made from <b>${J.name}</b> and <b>ribose</b>?`, right: cap(J.ns),
-      wrong: [{ html: cap(J.type === 'purine' ? J.ns.replace('osine', 'idine') : J.ns.replace('idine', 'osine')), why: J.type === 'purine' ? 'Purines get “-osine.”' : 'Pyrimidines get “-idine.”', slip: 'name-ending' }, { html: 'Deoxy' + J.ns, why: 'Ribose has the 2′ OH, so no “deoxy.”', slip: 'ribose-deoxy' }, { html: cap(J.ns) + ' 5′-monophosphate', why: 'No phosphate was mentioned: a nucleoside.', slip: 'side-tide' }],
+      wrong: [{ html: cap(J.type === 'purine' ? J.ns.replace('osine', 'idine') : J.ns.replace('idine', 'osine')), why: J.type === 'purine' ? 'Purines get “-osine.”' : 'Pyrimidines get “-idine.”', slip: 'name-ending' }, { html: 'Deoxy' + J.ns, why: 'Ribose has the 2′ OH, so no “deoxy.”', slip: 'ribose-deoxy' }, { html: cap(J.ns) + '-5′-monophosphate', why: 'No phosphate was mentioned: a nucleoside.', slip: 'side-tide' }],
       hint: 'Pyrimidines (C, T, U) → -idine. Purines (A, G) → -osine.', solution: `${cap(J.name)} is a ${J.type}, so: <b>${J.ns}</b>.` });
   }
   return factGen('naming', [
-    { k: 'atp', tag: 'AMP, ADP, ATP', q: 'How does ATP differ from AMP?', a: 'ATP has three phosphate groups in a row on C5′; AMP has one', w: [['ATP has a different base', 'Both contain adenine.'], ['ATP has deoxyribose', 'ATP has ribose (no “d”).', 'ribose-deoxy'], ['ATP has three bases', 'One base, one sugar; the phosphates change.']], h: 'M = mono, D = di, T = tri.', s: 'AMP + phosphate → ADP + phosphate → <b>ATP</b> (adenosine 5′-<b>tri</b>phosphate), the cell’s energy carrier.', art: () => nucleoSVG({ base: 'A', phos: 3, label: 'Adenosine with three phosphate groups in a row on C5 prime' }) },
-    { k: 'parts', tag: 'From the name', q: 'Deoxyguanosine 5′-monophosphate (dGMP) contains', a: 'guanine, deoxyribose and one phosphate', w: [['guanine, ribose and one phosphate', '“Deoxy” means deoxyribose.', 'ribose-deoxy'], ['guanine and deoxyribose only', 'Monophosphate = one phosphate.', 'side-tide'], ['adenine, deoxyribose and one phosphate', 'Guanosine comes from guanine.']], h: 'Break the name into parts.', s: '<b>Deoxy</b>ribose + <b>guan</b>ine + one phosphate on C5′.' }
+    { k: 'atp', tag: 'AMP, ADP, ATP', q: 'How does ATP differ from AMP?', a: 'ATP has three phosphate groups in a row on C5′; AMP has one', w: [['ATP has a different base', 'Both contain adenine.'], ['ATP has deoxyribose', 'ATP has ribose (no “d”).', 'ribose-deoxy'], ['ATP has three bases', 'One base, one sugar; the phosphates change.']], h: 'M = mono, D = di, T = tri.', s: 'AMP + phosphate → ADP + phosphate → <b>ATP</b> (adenosine-5′-<b>tri</b>phosphate), the cell’s energy carrier.', art: () => nucleoSVG({ base: 'A', phos: 3, label: 'Adenosine with three phosphate groups in a row on C5 prime' }) },
+    { k: 'parts', tag: 'From the name', q: 'Deoxyguanosine-5′-monophosphate (dGMP) contains', a: 'guanine, deoxyribose and one phosphate', w: [['guanine, ribose and one phosphate', '“Deoxy” means deoxyribose.', 'ribose-deoxy'], ['guanine and deoxyribose only', 'Monophosphate = one phosphate.', 'side-tide'], ['adenine, deoxyribose and one phosphate', 'Guanosine comes from guanine.']], h: 'Break the name into parts.', s: '<b>Deoxy</b>ribose + <b>guan</b>ine + one phosphate on C5′.' }
   ].filter(x => x.k === k))();
 }
 
@@ -1026,7 +1055,7 @@ const genHelix = factGen('helix', [
 
 /* ======================= REPLICATION & TRANSCRIPTION ======================= */
 const FORK = { A: ['helicase', 'the enzyme that unwinds the double helix'], B: ['the leading strand', 'the new strand made continuously toward the fork'], C: ['an Okazaki fragment', 'a short piece of the lagging strand'], D: ['DNA ligase', 'the enzyme that joins Okazaki fragments'], E: ['the parent DNA', 'the original double helix'] };
-const rpBag = bag(['label', 'label', 'label', 'label', 'semi', 'poly', 'lag', 'where', 'fork', 'bidir', 'dir']);
+const rpBag = bag(['label', 'label', 'label', 'label', 'newstrand', 'newstrand', 'semi', 'poly', 'lag', 'where', 'fork', 'bidir', 'dir', 'primase']);
 function genReplication() {
   const k = rpBag.next();
   if (k === 'label') {
@@ -1035,7 +1064,14 @@ function genReplication() {
       wrong: ['A', 'B', 'C', 'D', 'E'].filter(x => x !== want).map(x => ({ html: x, why: `${x} is ${FORK[x][0]}: ${FORK[x][1]}.`, slip: 'fork-label' })), n: 5,
       hint: 'Helicase sits at the fork. The leading strand is one long piece; the lagging strand is in short pieces, and ligase sits in a gap between them.', solution: `<b>${want}</b>: ${FORK[want][0]}, ${FORK[want][1]}.` }), ['A', 'B', 'C', 'D', 'E']);
   }
+  if (k === 'newstrand') {
+    const top = rndSeq(8), bot = comp(top), useTop = chance(0.5), tmpl = useTop ? top : bot, want = comp(tmpl);
+    return { kind: 'input', topic: 'replication', tag: 'Copy the template', eq: `<div class="duplex">${seqHTML(top.split('').join(' '), '5′ ', ' 3′')}<br>${seqHTML(bot.split('').join(' '), '3′ ', ' 5′')}</div>`, prompt: `During replication, the <b>${useTop ? 'top (5′ → 3′)' : 'bottom (3′ → 5′)'}</b> strand is used as a template. Write the new DNA strand made on it, lined up under (or over) it.`, placeholder: 'new strand', note: 'Type the new strand’s bases left to right.',
+      check: raw => checkSeq(raw, want, { from: tmpl, revNote: 'Right bases, reversed. Keep the new strand lined up base-for-base with its template.' }), answer: want.split('').join(' '),
+      hint: 'The new strand is complementary to its template (A–T, G–C), so it matches the other parent strand.', solution: `Template: ${tmpl.split('').join(' ')}<br>New strand: <b>${want.split('').join(' ')}</b>. It has the same sequence as the other parent strand: semi-conservative replication gives two identical helices.` };
+  }
   return factGen('replication', [
+    { k: 'primase', tag: 'Primase', q: 'What does primase do in DNA replication?', a: 'It makes a short RNA primer so DNA polymerase has a place to start', w: [['It unwinds the double helix', 'That is helicase.', 'enzyme-swap'], ['It joins Okazaki fragments', 'That is DNA ligase.', 'enzyme-swap'], ['It makes the mRNA for a gene', 'That is RNA polymerase (transcription).', 'enzyme-swap']], h: 'Primer → primase.', s: '<b>Primase</b> builds a short RNA <b>primer</b>. DNA polymerase can only add to an existing 3′ end, so each leading strand and every Okazaki fragment starts from a primer.' },
     { k: 'semi', tag: 'Semi-conservative', q: 'DNA replication is called <b>semi-conservative</b> because', a: 'each new double helix has one parent strand and one new strand', w: [['half the genes are copied each time', 'The whole molecule is copied.'], ['the parent helix stays intact and a brand-new helix forms', 'That would be conservative.', 'semi'], ['each new helix contains pieces of both strands mixed randomly', 'Each strand stays whole.']], h: 'Semi = half.', s: 'Each parent strand is a template, so every daughter helix keeps <b>one original strand</b> paired with <b>one new strand</b>.' },
     { k: 'poly', tag: 'DNA polymerase', q: 'What does DNA polymerase do?', a: 'Adds complementary nucleotides and forms the phosphodiester bonds of the new strand (5′ → 3′)', w: [['Unwinds the double helix', 'That is helicase.', 'enzyme-swap'], ['Joins Okazaki fragments together', 'That is DNA ligase.', 'enzyme-swap'], ['Makes mRNA from DNA', 'That is RNA polymerase (transcription).', 'enzyme-swap']], h: 'Polymer-ase builds the polymer.', s: '<b>DNA polymerase</b> reads the template and links new nucleotides, growing the strand <b>5′ → 3′</b>.' },
     { k: 'lag', tag: 'The lagging strand', q: 'Why is the lagging strand made in short Okazaki fragments?', a: 'DNA polymerase only builds 5′ → 3′, so on that strand it must work away from the fork in short pieces', w: [['Helicase cuts it into pieces', 'Helicase unwinds; it does not cut.', 'enzyme-swap'], ['That strand has no template', 'Both parent strands are templates.'], ['Ligase can only make short pieces', 'Ligase joins pieces; polymerase makes them.', 'enzyme-swap']], h: 'One direction only.', s: 'New DNA grows only <b>5′ → 3′</b>. On one strand that is toward the fork (leading, continuous). On the other it is away from the fork, so it is made in <b>Okazaki fragments</b> that <b>DNA ligase</b> joins.' },
@@ -1046,7 +1082,7 @@ function genReplication() {
   ].filter(x => x.k === k))();
 }
 
-const tcBag = bag(['tmpl', 'tmpl', 'tmpl', 'back', 'mcq']);
+const tcBag = bag(['tmpl', 'tmpl', 'tmpl', 'back', 'mcq', 'info', 'info', 'infovocab']);
 function genTranscribe() {
   const k = tcBag.next(), tmpl = rndSeq(pick([6, 6, 9]));
   const mrna = transcribe(tmpl);
@@ -1057,6 +1093,18 @@ function genTranscribe() {
   if (k === 'back') return { kind: 'input', topic: 'transcribe', tag: 'mRNA → template', eq: seqHTML(spaced(mrna), '5′–', '–3′'), prompt: 'This mRNA was just transcribed. What was the <b>DNA template strand</b>? Line it up under the mRNA.', placeholder: 'DNA bases', note: 'Type the DNA bases left to right. DNA uses T, not U.',
     check: raw => checkSeq(raw, tmpl, { from: mrna }), answer: `3′–${spaced(tmpl)}–5′`, hint: 'mRNA U was opposite a template A; mRNA A was opposite T.',
     solution: `5′–${spaced(mrna)}–3′ (mRNA)<br>3′–<b>${spaced(tmpl)}</b>–5′ (DNA template)` };
+  if (k === 'info') {
+    const info = comp(tmpl), fromInfo = chance(0.5);
+    if (fromInfo) return { kind: 'input', topic: 'transcribe', tag: 'Informational strand', eq: seqHTML(spaced(info), '5′–', '–3′'), prompt: 'This is the <b>informational (coding) strand</b> of a gene, not the template. What mRNA is transcribed from this gene? Write it 5′ → 3′.', placeholder: 'mRNA bases', note: 'The template is the other strand. RNA uses U.',
+      check: raw => checkSeq(raw, mrna, { rna: true, revNote: 'Write the mRNA 5′ → 3′, in the same direction as the informational strand.' }), answer: `5′–${spaced(mrna)}–3′`,
+      hint: 'The mRNA is complementary to the template, so it matches the informational strand, with U in place of T.', solution: `Informational: 5′–${spaced(info)}–3′<br>mRNA: 5′–<b>${spaced(mrna)}</b>–3′ (same bases, U for T).` };
+    return mcq({ topic: 'transcribe', tag: 'Informational strand', eq: `<div class="duplex">${seqHTML(info.split('').join(' '), '5′ ', ' 3′')} <small>informational</small><br>${seqHTML(tmpl.split('').join(' '), '3′ ', ' 5′')} <small>template</small></div>`, prompt: 'Which mRNA is made from this gene?', right: `5′–${spaced(mrna)}–3′`,
+      wrong: [{ html: `5′–${spaced(info)}–3′`, why: 'That is the informational DNA strand itself. RNA uses U, not T.', slip: 'T-in-RNA' }, { html: `5′–${spaced(tmpl.replace(/T/g, 'U'))}–3′`, why: 'That copies the template. mRNA pairs with the template.', slip: 'copied' }, { html: `5′–${spaced(revStr(mrna))}–3′`, why: 'Right bases, wrong direction.', slip: 'reversed' }],
+      hint: 'mRNA = complement of the template = informational strand with U for T.', solution: `<b>5′–${spaced(mrna)}–3′</b>: complementary to the template, the same as the informational strand with U for T.` });
+  }
+  if (k === 'infovocab') return mcq({ topic: 'transcribe', tag: 'Two strands, two jobs', prompt: 'In a gene, how does the mRNA compare with the two DNA strands?', right: 'It is complementary to the template strand and has the same sequence as the informational strand (U for T)',
+    wrong: [{ html: 'It has the same sequence as the template strand', why: 'mRNA pairs with the template, so it is complementary to it.', slip: 'copied' }, { html: 'It is complementary to both strands', why: 'The two DNA strands are complementary to each other, so mRNA can only match one.' }, { html: 'It has T where the informational strand has U', why: 'DNA has T; RNA has U.', slip: 'T-U' }],
+    hint: 'RNA polymerase reads the template.', solution: 'RNA polymerase reads the <b>template</b> strand, so the mRNA is its complement, which makes it a copy of the <b>informational</b> strand with U in place of T.' });
   const t2 = rndSeq(6), m2 = transcribe(t2);
   return mcq({ topic: 'transcribe', tag: 'Pick the mRNA', eq: seqHTML(spaced(t2), '3′–', '–5′'), prompt: 'Which mRNA is transcribed from this DNA template strand?', right: `5′–${spaced(m2)}–3′`,
     wrong: [{ html: `5′–${spaced(comp(t2))}–3′`, why: 'That uses T. RNA has U instead.', slip: 'T-in-RNA' }, { html: `5′–${spaced(t2.replace(/T/g, 'U'))}–3′`, why: 'That copies the template (with U) instead of pairing it.', slip: 'copied' }, { html: `5′–${spaced(revStr(m2))}–3′`, why: 'Right bases, wrong order: line them up under the template.', slip: 'reversed' }].filter(w => stripTags(w.html) !== `5′–${spaced(m2)}–3′`),
@@ -1102,9 +1150,9 @@ function genCodons() {
     const cods = randomGene(pick([3, 3, 4])); if (k === 'stop') cods.push(pick(STOPS));
     const m = cods.join(''), want = cods.filter(c => CODE[c] !== '*').map(c => CODE[c]);
     const tmplAA = cods.map(c => transcribe(c.replace(/U/g, 'T'))).map(c => CODE[c.replace(/T/g, 'U')]);
-    return { kind: 'input', topic: 'codons', tag: k === 'stop' ? 'Find the stop' : 'mRNA → amino acids', eq: `<span class="seq"><small>5′</small>${codonHTML(m)}<small>3′</small></span>`, art: miniChart([...new Set(cods)]), prompt: `Write the amino acids coded for by this section of mRNA. Use the codons in the chart.`, placeholder: 'e.g. Ala–Val–Asp', note: 'Use three-letter codes with dashes, like <b>Ala–Val–Asp</b>.',
+    return { kind: 'input', topic: 'codons', tag: k === 'stop' ? 'Find the stop' : 'mRNA → amino acids', eq: `<span class="seq"><small>5′</small>${codonHTML(m)}<small>3′</small></span>`, art: miniChart([...new Set(cods)]), prompt: `Write the amino acids coded for by this section of mRNA. Use the codons in the chart.`, placeholder: 'e.g. Ala–Val–Asp', note: 'Use three-letter codes with dashes, like <b>Ala–Val–Asp</b>, or one-letter codes, like <b>AVD</b>.',
       check: raw => checkAAs(raw, want, { codons: cods, withStopNote: k === 'stop', stopNote: k === 'stop' }), answer: pep(want), hint: 'Split the mRNA into triplets from the 5′ end, then look up each codon. A stop codon adds no amino acid.',
-      solution: cods.map(c => `${c} = ${CODE[c] === '*' ? 'Stop' : AA3[CODE[c]]}`).join(', ') + `.<br>Peptide: <b>${pep(want)}</b>${k === 'stop' ? ' (translation ends at the stop codon)' : ''}.` };
+      solution: cods.map(c => `${c} = ${CODE[c] === '*' ? 'Stop' : AA3[CODE[c]]}`).join(', ') + `.<br>Peptide: <b>${pep(want)}</b> (${want.join('')})${k === 'stop' ? ' (translation ends at the stop codon)' : ''}.` };
   }
   if (k === 'fromdna') {
     const cods = ['AUG', ...randomGene(2)], m = cods.join('');
@@ -1119,7 +1167,7 @@ function genCodons() {
     const lead = rndSeq(pick([2, 4, 5]), 'CGU').replace(/AUG/g, 'ACG'), cods = ['AUG', ...randomGene(2), pick(STOPS)], m = lead + cods.join('');
     const want = cods.filter(c => CODE[c] !== '*').map(c => CODE[c]);
     const wrongFrame = codonsOf(m).filter(c => c.length === 3); const wf = []; for (const c of wrongFrame) { if (CODE[c] === '*') break; wf.push(CODE[c]); }
-    return { kind: 'input', topic: 'codons', tag: 'Start at AUG', eq: `<span class="seq"><small>5′–</small>${m}<small>–3′</small></span>`, art: miniChart([...new Set(cods.filter(c => CODE[c] !== '*'))], 3) + '<p class="note-small" style="text-align:center;margin-top:4px">Stop codons: UAA, UAG, UGA. Start: AUG.</p>', prompt: 'Translation begins at the <b>first AUG</b>. What peptide does this mRNA code for?', placeholder: 'e.g. Met–…', note: 'Use three-letter codes with dashes.',
+    return { kind: 'input', topic: 'codons', tag: 'Start at AUG', eq: `<span class="seq"><small>5′–</small>${m}<small>–3′</small></span>`, art: miniChart([...new Set(cods.filter(c => CODE[c] !== '*'))], 3) + '<p class="note-small" style="text-align:center;margin-top:4px">Stop codons: UAA, UAG, UGA. Start: AUG.</p>', prompt: 'Translation begins at the <b>first AUG</b>. What peptide does this mRNA code for?', placeholder: 'e.g. Met–…', note: 'Use three-letter codes with dashes (or one-letter codes).',
       check: raw => checkAAs(raw, want, { codons: cods, withStopNote: true, altAA: wf, altSlip: 'no-start', altNote: 'You started reading at the very first base. Translation starts at the <b>AUG</b> start codon.' }), answer: pep(want), hint: 'Find AUG first; read in triplets from there until a stop codon.',
       solution: `Skip ${lead} and start at AUG: ${cods.join(' ')}.<br><b>${pep(want)}</b>, then stop.` };
   }
@@ -1207,7 +1255,7 @@ function makeMutation(kind) {
   }
   return null;
 }
-const mtBag = bag(['classify', 'classify', 'classify', 'classify', 'effect', 'worst', 'sickle', 'define', 'mutagen', 'hno2', 'disease']);
+const mtBag = bag(['classify', 'classify', 'classify', 'classify', 'dnamut', 'dnamut', 'effect', 'worst', 'sickle', 'define', 'mutagen', 'hno2', 'disease']);
 function genMutations() {
   const k = mtBag.next();
   if (k === 'classify') {
@@ -1226,6 +1274,16 @@ function genMutations() {
       steps: [{ ask: 'Count the bases. Compared with normal, the mutated mRNA has…', choices: [{ html: 'the same number', ok: x.mm.length === x.m.length, why: 'Count again.' }, { html: 'one more base', ok: x.mm.length > x.m.length, why: 'Count again.' }, { html: 'one fewer base', ok: x.mm.length < x.m.length, why: 'Count again.' }], why: x.mm.length === x.m.length ? 'Same length: a point mutation.' : 'A frameshift.' },
         ...(x.mm.length === x.m.length ? [{ ask: `Codon ${x.ci + 1} changed from ${x.cods[x.ci]} to ${x.mc[x.ci]}. Look up ${x.mc[x.ci]}.`, choices: [{ html: 'Same amino acid', ok: kind === 'silent', why: `${x.mc[x.ci]} = ${stripTags(aa(x.mc[x.ci]))}.` }, { html: 'Different amino acid', ok: kind === 'missense', why: `${x.mc[x.ci]} = ${stripTags(aa(x.mc[x.ci]))}.` }, { html: 'Stop codon', ok: kind === 'nonsense', why: `${x.mc[x.ci]} = ${stripTags(aa(x.mc[x.ci]))}.` }], why: '' }] : []),
         { ask: 'Now pick the type.', final: true }] }), MUT_ORDER);
+  }
+  if (k === 'dnamut') {
+    const kind = pick(['silent', 'missense', 'nonsense', 'missense']); let c0, c1;
+    for (let t = 0; t < 400; t++) { const a = pick(SENSE.filter(c => c !== 'AUG')), i = Math.floor(Math.random() * 3), nb = pick('AUGC'.replace(a[i], '').split('')), b = a.slice(0, i) + nb + a.slice(i + 1); const cls = CODE[b] === '*' ? 'nonsense' : CODE[b] === CODE[a] ? 'silent' : 'missense'; if (cls === kind) { c0 = a; c1 = b; break; } }
+    const toT = c => c.split('').map(x => ({ A: 'T', U: 'A', G: 'C', C: 'G' }[x])).join('');
+    const tb = `<table class="data mut"><thead><tr><th></th><th>Template DNA</th><th>mRNA</th><th>Amino acid</th></tr></thead><tbody><tr><th>Normal</th><td><span class="seq">${toT(c0)}</span></td><td><span class="seq">?</span></td><td>?</td></tr><tr><th>Mutated</th><td><span class="seq">${toT(c1)}</span></td><td><span class="seq">?</span></td><td>?</td></tr></tbody></table>`;
+    const opts = [MUT.silent, MUT.missense, MUT.nonsense];
+    return orderChoices(mcq({ topic: 'mutations', tag: 'From the template strand', art: tb + miniChart([c0, c1].filter(c => CODE[c] !== '*'), 2) + '<p class="note-small" style="text-align:center;margin-top:2px">Stop codons: UAA, UAG, UGA.</p>', prompt: 'One base in this triplet of the DNA template strand changed. Transcribe both, then translate. What is the effect?', right: MUT[kind], keep: true,
+      wrong: opts.filter(o => o !== MUT[kind]).map(o => ({ html: o, why: `Transcribe first: ${toT(c0)} → ${c0} and ${toT(c1)} → ${c1}. Then look up both codons.`, slip: 'mutation-type' })),
+      hint: 'Template A → U, T → A, G → C, C → G. Then compare the two codons in the chart.', solution: `Normal: ${toT(c0)} → ${c0} → ${CODE[c0] === '*' ? 'Stop' : AA3[CODE[c0]]}. Mutated: ${toT(c1)} → ${c1} → ${CODE[c1] === '*' ? 'Stop' : AA3[CODE[c1]]}. <b>${MUT[kind]}</b>.` }), opts);
   }
   return factGen('mutations', [
     { k: 'effect', tag: 'Frameshift', q: 'Why does a frameshift mutation usually change the protein more than a point mutation?', a: 'Inserting or deleting a base shifts every codon after it', w: [['It changes only one amino acid', 'That is a point (missense) mutation.', 'point-frameshift'], ['It always makes a silent mutation', 'Frameshifts are rarely silent.', 'point-frameshift'], ['It changes the DNA sugar', 'Mutations change bases.']], h: 'The reading frame is triplets.', s: 'The ribosome reads in triplets. Adding or removing one base <b>shifts the reading frame</b>, so every codon after the change is different.' },
@@ -1584,19 +1642,19 @@ function setVideoFor(key) {
 /* ---------- reference sheet ---------- */
 function renderRules() {
   $('rulesBody').innerHTML = `<div class="rule-grid">
-   <div class="rule wide"><h3>Nucleotide = base + sugar + phosphate</h3><div class="tablewrap"><table class="data ref"><thead><tr><th>Base</th><th>Type</th><th>In</th><th>Nucleoside (ribose)</th><th>Nucleotide (DNA)</th></tr></thead><tbody>
-    <tr><td>adenine (A)</td><td>purine</td><td>DNA, RNA</td><td>adenosine</td><td>deoxyadenosine 5′-monophosphate (dAMP)</td></tr>
-    <tr><td>guanine (G)</td><td>purine</td><td>DNA, RNA</td><td>guanosine</td><td>deoxyguanosine 5′-monophosphate (dGMP)</td></tr>
-    <tr><td>cytosine (C)</td><td>pyrimidine</td><td>DNA, RNA</td><td>cytidine</td><td>deoxycytidine 5′-monophosphate (dCMP)</td></tr>
-    <tr><td>thymine (T)</td><td>pyrimidine</td><td>DNA only</td><td>(deoxy)thymidine</td><td>deoxythymidine 5′-monophosphate (dTMP)</td></tr>
-    <tr><td>uracil (U)</td><td>pyrimidine</td><td>RNA only</td><td>uridine</td><td>(RNA) uridine 5′-monophosphate (UMP)</td></tr></tbody></table></div>
-    <p><b>“Pure As Gold”</b>: purines A, G (two rings). <b>“CUT the pyramid”</b>: pyrimidines C, U, T (one ring). Pyrimidine → <b>-idine</b>; purine → <b>-osine</b>; deoxyribose → add <b>deoxy-</b>; phosphate on C5′ → add <b>5′-monophosphate</b> (MP, DP, TP).</p></div>
+   <div class="rule wide"><h3>Nucleotide = base + sugar + phosphate</h3><div class="tablewrap"><table class="data ref"><thead><tr><th>Base</th><th>Type</th><th>RNA nucleoside · nucleotide</th><th>DNA nucleoside · nucleotide</th></tr></thead><tbody>
+    <tr><td>adenine (A)</td><td>purine</td><td>adenosine · adenosine-5′-monophosphate (AMP)</td><td>deoxyadenosine · deoxyadenosine-5′-monophosphate (dAMP)</td></tr>
+    <tr><td>guanine (G)</td><td>purine</td><td>guanosine · guanosine-5′-monophosphate (GMP)</td><td>deoxyguanosine · deoxyguanosine-5′-monophosphate (dGMP)</td></tr>
+    <tr><td>cytosine (C)</td><td>pyrimidine</td><td>cytidine · cytidine-5′-monophosphate (CMP)</td><td>deoxycytidine · deoxycytidine-5′-monophosphate (dCMP)</td></tr>
+    <tr><td>uracil (U)</td><td>pyrimidine</td><td>uridine · uridine-5′-monophosphate (UMP)</td><td>(not in DNA)</td></tr>
+    <tr><td>thymine (T)</td><td>pyrimidine</td><td>(not in RNA)</td><td>deoxythymidine · deoxythymidine-5′-monophosphate (dTMP)</td></tr></tbody></table></div>
+    <p><b>“Pure As Gold”</b>: purines A, G (two rings). <b>“CUT the pyramid”</b>: pyrimidines C, U, T (one ring). Pyrimidine → <b>-idine</b>; purine → <b>-osine</b>; deoxyribose → add <b>deoxy-</b>; phosphate on C5′ → add <b>-5′-monophosphate</b>. More phosphates: AMP → ADP → ATP (one H₂O released at every condensation step).</p></div>
    <div class="rule"><h3>Sugars</h3><p><b>Ribose</b> (RNA): OH on C2′. <b>2-Deoxyribose</b> (DNA): H on C2′. Number from the ring O: C1′ bonds the base (β-N-glycosidic bond, to N1 of a pyrimidine or N9 of a purine); C5′ bonds the phosphate; C3′ –OH links to the next nucleotide.</p></div>
    <div class="rule"><h3>Strands</h3><p>Backbone: sugar–phosphate–sugar, joined by <b>phosphodiester</b> links (3′ C to 5′ C). The 5′ end has a free phosphate; the 3′ end a free –OH. Sequences are written <b>5′ → 3′</b>.</p></div>
    <div class="rule"><h3>Double helix</h3><p>Two <b>antiparallel</b> strands, bases inside, backbones outside. <b>A–T: 2 H bonds. G–C: 3 H bonds.</b> Chargaff: %A = %T, %G = %C.</p></div>
    <div class="rule"><h3>DNA vs RNA</h3><p>Sugar: deoxyribose vs ribose. Base: T vs U. DNA double-stranded, RNA single-stranded. DNA larger. <b>mRNA</b> carries codons; <b>tRNA</b> brings amino acids; <b>rRNA</b> + protein = ribosome.</p></div>
-   <div class="rule"><h3>Replication (nucleus)</h3><p><b>Helicase</b> unwinds at the <b>replication fork</b>. <b>DNA polymerase</b> builds 5′ → 3′: the <b>leading strand</b> continuously, the <b>lagging strand</b> in <b>Okazaki fragments</b> joined by <b>DNA ligase</b>. Semi-conservative.</p></div>
-   <div class="rule"><h3>Transcription (nucleus)</h3><p><b>RNA polymerase</b> copies one template strand of a gene (start: TATAAA). Template A → U, T → A, G → C, C → G. Pre-mRNA: remove <b>introns</b>, join <b>exons</b> (spliceosome) → mature mRNA.</p></div>
+   <div class="rule"><h3>Replication (nucleus)</h3><p><b>Helicase</b> unwinds at the <b>replication fork</b>. <b>Primase</b> lays down a short RNA primer. <b>DNA polymerase</b> builds 5′ → 3′: the <b>leading strand</b> continuously, the <b>lagging strand</b> in <b>Okazaki fragments</b> joined by <b>DNA ligase</b>. Semi-conservative.</p></div>
+   <div class="rule"><h3>Transcription (nucleus)</h3><p><b>RNA polymerase</b> reads the <b>template strand</b> of a gene (start: TATAAA). The mRNA matches the <b>informational strand</b>, with U for T. Template A → U, T → A, G → C, C → G. Pre-mRNA: remove <b>introns</b>, join <b>exons</b> (spliceosome) → mature mRNA.</p></div>
    <div class="rule"><h3>Translation (cytoplasm)</h3><p><b>Activation</b>: synthetase + ATP attaches an amino acid to tRNA’s 3′ end (ester). <b>Initiation</b>: Met-tRNA at <b>AUG</b> in the P site. <b>Elongation</b>: next tRNA in the A site; peptidyl transferase makes the peptide bond; <b>translocation</b> moves one codon. <b>Termination</b>: UAA, UAG, UGA.</p></div>
    <div class="rule"><h3>Mutations and viruses</h3><p><b>Point</b> (same length): silent, one amino acid changed, or new stop. <b>Insertion/deletion</b>: frameshift; every later codon changes. Mutagens: UV, X-rays, HNO₂. <b>Retroviruses</b> (HIV) use <b>reverse transcriptase</b>: RNA → DNA.</p></div>
    <div class="rule wide"><h3>The genetic code (mRNA codons, read 5′ → 3′)</h3>${codonChartHTML()}</div></div>`;
