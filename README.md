@@ -9,4 +9,4 @@ Study game for CHEM 3B nucleic acids and protein synthesis. Planned home: https:
 - Links: `?topic=<id>` opens one topic (e.g. `?topic=transcribe`, `?topic=codons`, `?topic=mutations`); `?mode=blocks|structure|copy|protein|final` opens a whole option. `?course=3B` is accepted and ignored.
 - `meta.json` is the study hub card.
 
-Game design and chemistry by ItsDrDan. Code written with AI assistance (Claude) and checked by the author. CC BY-NC-SA 4.0.
+Game design and chemistry by ItsDrDan. Code written with AI assistance (Claude) and checked by the author. © ItsDrDan, all rights reserved; free to play, reuse by permission only (see LICENSE).
